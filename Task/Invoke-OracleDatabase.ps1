@@ -22,12 +22,10 @@ $Copy = Get-VstsInput -Name 'copy' -Default true
 $ScriptOrderFile = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.txt
 $ConnectionSet = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.json
 
-if ($ScriptOrderFile)
-{
+if ($ScriptOrderFile) {
     $SqlPath = Get-Content -Path $ScriptOrderFile
 }
-else 
-{
+else {
     $SqlPath = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.sq?
 }
 ## $SqlPath = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.sq?
@@ -45,44 +43,44 @@ if ($SqlPath) {
     }
     foreach ($SqlFile in $SqlPath) {	
         if ($SqlError) {
-            Write-Output "whenever sqlerror exit sql.sqlcode rollback;" |Write-File -FilePath $SqlFile -Top
+            Write-Output "whenever sqlerror exit sql.sqlcode rollback;" | Write-File -FilePath $SqlFile -Top
         }
         if ($Timing) {
-            Write-Output "set timing on;" |Write-File -FilePath $SqlFile -Top
+            Write-Output "set timing on;" | Write-File -FilePath $SqlFile -Top
         }	
         if ($Echo) {
-            Write-Output "set echo on;" |Write-File -FilePath $SqlFile -Top
+            Write-Output "set echo on;" | Write-File -FilePath $SqlFile -Top
         }
         if ($Define) {
-            Write-Output "set define off;" |Write-File -FilePath $SqlFile -Top 
+            Write-Output "set define off;" | Write-File -FilePath $SqlFile -Top 
         }
         if ($TopLine) {
-            Write-Output "-- top line" |Write-File -FilePath $SqlFile -Top
+            Write-Output "-- top line" | Write-File -FilePath $SqlFile -Top
         }
-        Write-Output "spool $($SqlFile).log" |Write-File -FilePath $SqlFile -Top
-        Write-Output "spool off" |Write-File -FilePath $SqlFile
-        Write-Output "exit" |Write-File -FilePath $SqlFile	
-        IF ($ConnectionSet)
-        {
+        Write-Output "spool $($SqlFile).log" | Write-File -FilePath $SqlFile -Top
+        Write-Output "spool off" | Write-File -FilePath $SqlFile
+        Write-Output "exit" | Write-File -FilePath $SqlFile	
+        IF ($ConnectionSet) {
             $connectionObjects = Get-Content -Path $ConnectionSet | ConvertFrom-Json
-            foreach($connectionObj in $connectionObjects)
-            {
-                $connectionString = $connectionObj | select connection | where {$connectionObj.environment -eq $env:COMPUTERNAME}
-                sqlplus "$connectionString" "@$($SqlFile)"
-                if ($OraError -eq 'true') {
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "An error has occured in $SqlFile. Please check the logs for error."
+            foreach ($connectionObj in $connectionObjects.connections) {
+                $connectionString = $connectionObj.connection | Where-Object { $connectionObj.environment -eq $env:COMPUTERNAME }
+                if ($connectionString) {
+                    sqlplus "$connectionString" "@$($SqlFile)"
+                    if ($OraError -eq 'true') {
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "An error has occured in $SqlFile. Please check the logs for error."
+                        }
                     }
-                }
-                if ($LogPath) {
-                    _Copy -Path "$($SqlFile).log" -Destination $LogPath
-                    if ($Copy) {
-                        _Copy -Path $SqlFile -Destination $LogPath
+                    if ($LogPath) {
+                        _Copy -Path "$($SqlFile).log" -Destination $LogPath
+                        if ($Copy) {
+                            _Copy -Path $SqlFile -Destination $LogPath
+                        }
                     }
-                }
-                else {
-                    Write-VstsTaskWarning -Message "No log path specified." 
-                    Write-VstsTaskWarning -Message "Log files are located: $ScriptPath"
+                    else {
+                        Write-VstsTaskWarning -Message "No log path specified." 
+                        Write-VstsTaskWarning -Message "Log files are located: $ScriptPath"
+                    }
                 }
             }
         }
