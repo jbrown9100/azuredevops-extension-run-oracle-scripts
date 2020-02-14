@@ -2,9 +2,11 @@
 param ()
 
 $ScriptPath = Get-VstsInput -Name 'scriptPath' -Require
-$User = Get-VstsInput -Name 'user' -Require
-$Password = Get-VstsInput -Name 'password' -Require
-$DatabaseName = Get-VstsInput -Name 'databaseName' -Require
+$ScriptOrderFile = Get-VstsInput -Name 'scriptOrder'
+$ConnectionSet = Get-VstsInput -Name 'scriptMultiDBRun'
+$User = Get-VstsInput -Name 'user'
+$Password = Get-VstsInput -Name 'password' 
+$DatabaseName = Get-VstsInput -Name 'databaseName'
 $LogPath = Get-VstsInput -Name 'logPath'
 $TopLine = Get-VstsInput -Name 'topLine'
 $Define = Get-VstsInput -Name 'define'
@@ -17,7 +19,18 @@ $Copy = Get-VstsInput -Name 'copy' -Default true
 
 . $PSScriptRoot\HelperFunctions.ps1
 
-$SqlPath = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.sql
+$ScriptOrderFile = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.txt
+$ConnectionSet = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.json
+
+if ($ScriptOrderFile)
+{
+    $SqlPath = Get-Content -Path $ScriptOrderFile
+}
+else 
+{
+    $SqlPath = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.sq?
+}
+## $SqlPath = Find-VstsFiles -LiteralDirectory $ScriptPath -LegacyPattern **.sq?
 if ($SqlPath) {
     Try {
         New-Item -Path env:NLS_LANG -Value .AL32UTF8 -ErrorAction Stop
@@ -49,7 +62,33 @@ if ($SqlPath) {
         Write-Output "spool $($SqlFile).log" |Write-File -FilePath $SqlFile -Top
         Write-Output "spool off" |Write-File -FilePath $SqlFile
         Write-Output "exit" |Write-File -FilePath $SqlFile	
-        sqlplus "$User/$Password@$DatabaseName" "@$($SqlFile)"
+        IF ($ConnectionSet)
+        {
+            $connectionObjects = Get-Content -Path $ConnectionSet | ConvertFrom-Json
+            foreach($connectionObj in $connectionObjects)
+            {
+                $connectionString = $connectionObj | select connection | where {$connectionObj.environment -eq $env:COMPUTERNAME}
+                sqlplus "$connectionString" "@$($SqlFile)"
+                if ($OraError -eq 'true') {
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "An error has occured in $SqlFile. Please check the logs for error."
+                    }
+                }
+                if ($LogPath) {
+                    _Copy -Path "$($SqlFile).log" -Destination $LogPath
+                    if ($Copy) {
+                        _Copy -Path $SqlFile -Destination $LogPath
+                    }
+                }
+                else {
+                    Write-VstsTaskWarning -Message "No log path specified." 
+                    Write-VstsTaskWarning -Message "Log files are located: $ScriptPath"
+                }
+            }
+        }
+        else {
+            sqlplus "$User/$Password@$DatabaseName" "@$($SqlFile)"
+        }
         if ($OraError -eq 'true') {
             if ($LASTEXITCODE -ne 0) {
                 throw "An error has occured in $SqlFile. Please check the logs for error."

@@ -1,22 +1,27 @@
 {
-	"id": "554a5c88-c4a9-4892-9c01-26887b72108a",
-	"name": "RunOracleScripts",
-	"friendlyName": "Run Oracle Database Scripts",
+	"id": "440f6bfd-a835-4eb1-842a-a3d71cf115be",
+	"name": "RunMultipleOracleScripts",
+	"friendlyName": "Run Multiple Oracle Database Scripts",
 	"description": "Executes Oracle database scripts using sqlplus commandline tool.",
-	"author": "pwshliquori",
+	"author": "jbrown9100",
 	"helpMarkDown": "Executes Oracle database scripts using sqlplus commandline tool",
 	"category": "Deploy",
 	"visibility": [
 		"Build",
 		"Release"
 	],
-	"demands": ["sqlplus.exe"],
+	"demands": [],
 	"version": {
         "Major": "1",
-        "Minor": "1",
-        "Patch": "3"
+        "Minor": "0",
+        "Patch": "0"
 	},
 	"groups": [
+		{
+			"name": "scriptRunOptions",
+			"displayName": "Script Run Options",
+			"isExpanded": false
+		},
 		{
 			"name": "sqlPlusOptions",
 			"displayName": "SQLPlus Options",
@@ -33,7 +38,7 @@
 			"isExpanded": false
 		}
 	],
-	"instanceNameFormat": "Run Oracle Database Scripts",
+	"instanceNameFormat": "Run Multiple Oracle Database Scripts",
 	"inputs": [
 		{
 			"name": "scriptPath",
@@ -48,7 +53,7 @@
 			"type": "string",
 			"label": "User",
 			"defaultValue": "",
-			"required": true,
+			"required": false,
 			"helpMarkDown": "User to connect to the Oracle database."
 		},
 		{
@@ -56,7 +61,7 @@
 			"type": "string",
 			"label": "Password",
 			"defaultValue": "",
-			"required": true,
+			"required": false,
 			"helpMarkDown": "Password to connect to the Oracle database."
 		},
 		{
@@ -64,8 +69,26 @@
 			"type": "string",
 			"label": "Database Name",
 			"defaultValue": "",
-			"required": true,
+			"required": false,
 			"helpMarkDown": "Name of database for script to run on."	
+		},
+		{
+			"name": "scriptOrder",
+			"type": "filePath",
+			"label": "Script Order",
+			"defaultValue": "",
+			"required": false,
+			"groupName": "scriptRunOptions",
+			"helpMarkDown": "Text file containing the ordered list of script files to run."
+		},
+		{
+			"name": "scriptMultiDBRun",
+			"type": "filePath",
+			"label": "Run against multi DBs",
+			"defaultValue": "",
+			"required": false,
+			"groupName": "scriptRunOptions",
+			"helpMarkDown": "Text file containing the ordered list of script files to run."			
 		},
 		{
 			"name": "logPath",
